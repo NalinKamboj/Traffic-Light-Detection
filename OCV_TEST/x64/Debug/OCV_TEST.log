@@ -1,0 +1,3 @@
+﻿  haar.cpp
+c:\users\nalin\desktop\work\semester 7\computer vision\practical\ocv_test\ocv_test\haar.cpp(250): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  OCV_TEST.vcxproj -> C:\Users\nalin\Desktop\Work\Semester 7\Computer Vision\Practical\OCV_TEST\x64\Debug\OCV_TEST.exe

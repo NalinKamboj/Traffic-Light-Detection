@@ -1,0 +1,136 @@
+
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <iostream>
+using namespace cv;
+using namespace std;
+
+//EXPERIMENTAL 2 STUFF
+bool use_mask;
+Mat img; Mat templ; Mat mask; Mat result;
+const char* image_window = "Source Image";
+const char* result_window = "Result window";
+int match_method;
+int max_Trackbar = 5;
+void MatchingMethod(int, void*);
+
+
+Mat maximizeContrast(Mat &imgGrayscale) {
+	Mat imgTopHat;
+	Mat imgBlackHat;
+	Mat imgGrayscalePlusTopHat;
+	Mat imgGrayscalePlusTopHatMinusBlackHat;
+
+	Mat structuringElement = getStructuringElement(CV_SHAPE_RECT, Size(3, 3));
+
+	morphologyEx(imgGrayscale, imgTopHat, CV_MOP_TOPHAT, structuringElement);
+	morphologyEx(imgGrayscale, imgBlackHat, CV_MOP_BLACKHAT, structuringElement);
+
+	imgGrayscalePlusTopHat = imgGrayscale + imgTopHat;
+	imgGrayscalePlusTopHatMinusBlackHat = imgGrayscalePlusTopHat - imgBlackHat;
+
+	return(imgGrayscalePlusTopHatMinusBlackHat);
+}
+
+
+int main(int argc, char** argv)
+{
+	//if (argc != 2)
+	//{
+	//	cout << " Usage: display_image ImageToLoadAndDisplay" << endl;
+	//	return -1;
+	//}
+
+	Mat image;
+	const char* loc = "images/14.png";
+	const char* savelog = "images/14G.png";
+	image = imread(loc, IMREAD_UNCHANGED); // Read the file
+
+	if (image.empty()) // Check for invalid input
+	{
+		cout << "Could not open or find the image" << std::endl;
+		return -1;
+	}
+	Mat grayImage;
+	cvtColor(image, grayImage, CV_BGR2GRAY);
+	//namedWindow("Window 1A - GS", WINDOW_AUTOSIZE); // Create a window for display.
+	//imshow("Window 1A - GS", grayImage); // Show our image inside it.
+	
+	Mat maxContrast;
+	maxContrast = maximizeContrast(grayImage);
+	//namedWindow("Window 1 - MORE CONT.", WINDOW_AUTOSIZE);
+	//imshow("Window 1 - MORE CONT.", maxContrast);
+	
+	//Mat binaryImage;
+	//threshold(greyImage, binaryImage, 30, 255, THRESH_BINARY);
+	//adaptiveThreshold(grayImage, binaryImage, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 31, 5);
+	//namedWindow("Window 2A - ADAP. THRESH", WINDOW_AUTOSIZE); // Create a window for display.
+	//imshow("Window 2A - ADAP. THRESH", binaryImage); // Show our image inside it.
+
+	//Mat binaryImageC;
+	//threshold(greyImage, binaryImage, 30, 255, THRESH_BINARY);
+	//adaptiveThreshold(maxContrast, binaryImageC, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 31, 5);
+	//namedWindow("Window 2A - ADAP. THRESHC", WINDOW_AUTOSIZE); // Create a window for display.
+	//imshow("Window 2A - ADAP. THRESHC", binaryImageC); // Show our image inside it.
+
+	//Mat binaryImage2;
+	//threshold(grayImage, binaryImage2, 85, 255, THRESH_BINARY);
+	//adaptiveThreshold(openedImage, binaryImage2, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 101, 15);
+	//namedWindow("Window 2B - BIN. THRESH", WINDOW_AUTOSIZE); // Create a window for display.
+	//imshow("Window 2B - BIN. THRESH", binaryImage2); // Show our image inside it.
+
+	Mat binaryImage2;
+	threshold(maxContrast, binaryImage2, 85, 255, THRESH_BINARY);
+	//adaptiveThreshold(openedImage, binaryImage2, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 101, 15);
+	namedWindow("Window 2B - BIN. THRESHC", WINDOW_AUTOSIZE); // Create a window for display.
+	imshow("Window 2B - BIN. THRESHC", binaryImage2); // Show our image inside it.
+
+	Mat binaryEdges;
+	Mat maxContrastBlur;
+	//blur(maxContrast, maxContrastBlur, Size(3, 3));
+	//Canny(binaryImage2, binaryEdges, 100, 200);
+	//namedWindow("Window 3A - BIN. CANNY", WINDOW_AUTOSIZE); // Create a window for display.
+	//imshow("Window 3A - BIN. CANNY", binaryEdges); // Show our image inside it.
+
+	imwrite(savelog, binaryImage2);
+
+	/*
+	//Now let's try CANNY EDGE DETECTION
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy;
+	findContours(binaryImage2, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	
+	Mat imgContours = Mat::zeros(maxContrast.size(), CV_8UC3);
+	for (int i = 0; i < contours.size(); i++) {
+		Scalar color(rand() & 0xFF, rand() & 0xFF, rand() & 0xFF);
+		drawContours(imgContours, contours, i, color, 1, 8, hierarchy);
+	}
+	namedWindow("Window 3B - BIN. CANNY C", WINDOW_AUTOSIZE); // Create a window for display.
+	imshow("Window 3B - BIN. CANNY C", imgContours); // Show our image inside it.
+
+
+	//EXPERIMENTAL
+
+	Mat drawing = Mat::zeros(maxContrast.size(), CV_8UC3);
+	vector<Point> approxRect;
+	for (size_t i = 0; i < contours.size(); i++) {
+		approxPolyDP(contours[i], approxRect, arcLength(Mat(contours[i]), true)*0.05, true);
+		if (approxRect.size() == 4 && contourArea(approxRect) > 1000) {
+			drawContours(drawing, contours, i, Scalar(0, 255, 255), CV_FILLED); // fill GREEN
+			vector<Point>::iterator vertex;
+			for (vertex = approxRect.begin(); vertex != approxRect.end(); ++vertex) {
+				circle(drawing, *vertex, 2, Scalar(0, 0, 255), 1);
+			}
+		}
+	}
+	//namedWindow("RECT", WINDOW_AUTOSIZE);
+	imshow("RECT", drawing);
+
+	*/
+
+
+	waitKey(0); // Wait for a keystroke in the window
+	return 0;
+}
